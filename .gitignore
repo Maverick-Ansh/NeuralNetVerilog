@@ -1,0 +1,11 @@
+# Simulation artifacts
+sim/
+*.vvp
+*.vcd
+*.shm/
+xrun.log
+xrun.history
+xcelium.d/
+waves.shm/
+.simvision/
+INCA_libs/
