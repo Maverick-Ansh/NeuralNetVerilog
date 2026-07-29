@@ -27,13 +27,19 @@ Compile with `+define+INJECT_BUG` (`make bug`). The testbench corrupts **DUT
 weight[0]** on load while the golden model keeps the correct value. Result:
 
 ```
-RESULT: 1704 checks, 57 failures
-*** 57 FAILURE(S) DETECTED ***
+RESULT: 1704 checks, N failures      (N > 0)
+*** N FAILURE(S) DETECTED ***
 ```
 
 Every test whose neuron 0 depends on weight[0] flags a mismatch — proving the
 checker actually compares and would catch a real RTL defect. The clean run
 (`make`) reports `1704 checks, 0 failures`.
+
+**On the failure count:** the `1704` is deterministic, but `N` is **not** — it
+depends on how many random vectors happen to make neuron 0 differ, and on the
+simulator's `$random` implementation. Do not treat any specific number as the
+expected result; the pass criterion is **0 on a clean run, non-zero when the bug
+is injected**.
 
 ## Coverage summary
 

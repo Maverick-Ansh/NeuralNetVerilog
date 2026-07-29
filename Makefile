@@ -7,6 +7,7 @@
 # both. All tests pass identically.
 #
 #   make            # run the layer testbench (all tests, expect 0 failures)
+#   make quick      # directed tests T1..T11 only -- short, waveform-friendly
 #   make mac        # run the MAC unit testbench
 #   make bug        # inject a bug, prove the testbench catches it
 #   make wave       # run layer TB (produces sim/linear_layer.vcd)
@@ -24,6 +25,10 @@ layer: | sim
 	$(IV) -o sim/sim.vvp $(RTL) $(LAYERTB)
 	$(VVP) sim/sim.vvp
 
+quick: | sim
+	$(IV) -D QUICK -o sim/sim_quick.vvp $(RTL) $(LAYERTB)
+	$(VVP) sim/sim_quick.vvp
+
 mac: | sim
 	$(IV) -o sim/sim_mac.vvp $(RTL) $(MACTB)
 	$(VVP) sim/sim_mac.vvp
@@ -40,4 +45,4 @@ sim:
 clean:
 	rm -rf sim *.vvp
 
-.PHONY: all layer mac bug wave clean
+.PHONY: all layer quick mac bug wave clean

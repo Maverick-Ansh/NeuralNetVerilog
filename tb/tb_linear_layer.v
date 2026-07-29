@@ -248,10 +248,16 @@ module tb_linear_layer;
 
     // Bounded random: operands/bias sized so results usually land IN range,
     // exercising the mid-range requant, rounding, and occasional-clamp paths.
-    task rand_small; integer i; begin
-        for (i=0;i<NW;i=i+1)   W[i] = ($random % 81) - 40;    // [-40,40]
-        for (i=0;i<NIN;i=i+1)  X[i] = ($random % 81) - 40;    // [-40,40]
-        for (i=0;i<NOUT;i=i+1) B[i] = ($random % 8193) - 4096;// [-4096,4096]
+    //
+    // NOTE: `$random % N` is NOT in [0,N-1] -- Verilog's % takes the sign of the
+    // dividend, so it spans [-(N-1),N-1] and the resulting range is skewed
+    // negative. `{$random}` forces an unsigned value so the modulo is in
+    // [0,N-1]; the subtraction is then done on a signed integer temp so the
+    // final range is symmetric as intended.
+    task rand_small; integer i; integer r; begin
+        for (i=0;i<NW;i=i+1)   begin r = {$random} % 81;   W[i] = r - 40;   end // [-40,40]
+        for (i=0;i<NIN;i=i+1)  begin r = {$random} % 81;   X[i] = r - 40;   end // [-40,40]
+        for (i=0;i<NOUT;i=i+1) begin r = {$random} % 8193; B[i] = r - 4096; end // [-4096,4096]
     end endtask
 
     //==================================================================
@@ -349,6 +355,12 @@ module tb_linear_layer;
 
         // ---- T12: randomized regression sweep ----------------------
         // Mix bounded (mid-range) and full-range (saturation) random vectors.
+        // Skipped under +define+QUICK so the waveform run contains ONLY the
+        // directed cases T1..T11 -- those are the ones in the functional table,
+        // and the shorter run is readable in SimVision (~7 us vs ~150 us).
+`ifdef QUICK
+        $display("  [QUICK] random regression sweep skipped (directed tests only)");
+`else
         for (t = 0; t < 200; t = t + 1) begin
             if (t[0]) rand_small; else rand_stim;
             load_all;
@@ -357,6 +369,7 @@ module tb_linear_layer;
             @(negedge clk);
             check_outputs(t[0] ? "T12-rand-small" : "T12-rand-full");
         end
+`endif
 
         //-------------------------------------------------------------
         $display("========================================================");

@@ -106,19 +106,22 @@ docs/xcelium_simvision.md xrun commands + SimVision steps, top to bottom
 
 ```sh
 ./run_xrun.sh          # layer testbench — expect: 1704 checks, 0 failures
+./run_xrun.sh quick    # directed tests T1..T11 only — 104 checks, short waveform
 ./run_xrun.sh mac      # MAC unit testbench
-./run_xrun.sh bug      # inject a bug → expect 57 failures (proves TB has teeth)
-./run_xrun.sh gui      # run + open SimVision on the VCD
+./run_xrun.sh bug      # inject a bug → expect NON-ZERO failures (TB has teeth)
+./run_xrun.sh gui      # quick run + SimVision live (use this for waveforms)
 ```
 
 Full command detail and SimVision waveform steps: **`docs/xcelium_simvision.md`**.
+Hand-derived expected outputs: **`docs/functional_table.md`**.
 
 ### Icarus Verilog (how it was verified in this container)
 
 ```sh
 make        # layer TB     -> *** ALL TESTS PASSED ***  (1704 checks, 0 failures)
+make quick  # directed TB  -> *** ALL TESTS PASSED ***  (104 checks, 0 failures)
 make mac    # MAC TB       -> *** MAC TESTS PASSED ***  (509 checks, 0 failures)
-make bug    # bug inject   -> *** 57 FAILURE(S) DETECTED ***
+make bug    # bug inject   -> *** N FAILURE(S) DETECTED ***  (N > 0)
 ```
 
 ---
@@ -139,8 +142,10 @@ ReLU on negatives, overflow-forcing values, all-zero input, max-magnitude
 weights, back-to-back ops, weight-load timing — plus a 200-vector random sweep.
 Full mapping in **`docs/failure_cases.md`**.
 
-**Teeth:** `make bug` corrupts one DUT weight (not the golden copy); the
-checker reports 57 mismatches. Clean run reports 0.
+**Teeth:** `make bug` corrupts one DUT weight (not the golden copy); the checker
+reports mismatches. Clean run reports 0. The *number* of mismatches depends on
+how many random vectors involve the corrupted weight and on the simulator's
+`$random`, so the pass criterion is **zero vs non-zero**, not a fixed count.
 
 VCD (`sim/linear_layer.vcd`) is dumped for SimVision.
 
@@ -149,7 +154,12 @@ VCD (`sim/linear_layer.vcd`) is dumped for SimVision.
 ## 7. Results
 
 ```
-Layer TB : 1704 checks, 0 failures   *** ALL TESTS PASSED ***
-MAC TB   :  509 checks, 0 failures   *** MAC TESTS PASSED ***
-Bug run  : 1704 checks, 57 failures  *** caught ***
+Layer TB   : 1704 checks, 0 failures   *** ALL TESTS PASSED ***
+Directed   :  104 checks, 0 failures   *** ALL TESTS PASSED ***  (make quick)
+MAC TB     :  509 checks, 0 failures   *** MAC TESTS PASSED ***
+Bug run    : 1704 checks, N > 0        *** caught ***
 ```
+
+Check counts are deterministic (`213 cases × 4 neurons × 2 DUT instances =
+1704`). Verified on Icarus Verilog; the RTL is plain Verilog-2001 and runs
+identically under Xcelium.
