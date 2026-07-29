@@ -10,20 +10,51 @@ compiles, elaborates, and simulates in one command.
 source /opt/cadence/xcelium/setup.sh      # or module load xcelium
 which xrun simvision                        # confirm both are on PATH
 cd NeuralNetVerilog
-mkdir -p sim
+mkdir -p sim                                # REQUIRED: $dumpfile writes here
 ```
+
+Directory layout the filelists expect (run `xrun` from the repo root):
+
+```
+NeuralNetVerilog/
+├── run.f          <- filelist: RTL + layer testbench
+├── run_mac.f      <- filelist: RTL + MAC testbench
+├── rtl/mac.v
+├── rtl/linear_layer.v
+├── tb/tb_linear_layer.v
+├── tb/tb_mac.v
+└── sim/           <- created by mkdir, holds the VCD
+```
+
+## 0b. Filelists
+
+A **filelist** is a plain text file listing the sources (and any options), read
+by `xrun -f`. It keeps the command line short and is the file to show under
+"Files (Commands)" in a lab record. `//` starts a comment.
+
+`run.f`:
+
+```
+-timescale 1ns/1ps
+rtl/mac.v
+rtl/linear_layer.v
+tb/tb_linear_layer.v
+```
+
+`run_mac.f` is the same with `tb/tb_mac.v` and only `rtl/mac.v`.
 
 ## 1. Run the layer testbench (all tests, expect 0 failures)
 
 ```sh
-xrun -access +rwc -timescale 1ns/1ps \
-     rtl/mac.v rtl/linear_layer.v tb/tb_linear_layer.v
+xrun -f run.f -access +rwc
 ```
 
 Flags:
+- `-f run.f` — read the source list from the filelist.
 - `-access +rwc` — full read/write/connectivity access so every signal is
   probeable in SimVision.
-- `-timescale 1ns/1ps` — matches the `` `timescale `` in the sources.
+- `-timescale 1ns/1ps` — inside `run.f`; matches the `` `timescale `` in the
+  sources.
 
 Expected tail:
 
@@ -35,8 +66,7 @@ Expected tail:
 ## 2. Run the MAC unit testbench
 
 ```sh
-xrun -access +rwc -timescale 1ns/1ps \
-     rtl/mac.v tb/tb_mac.v
+xrun -f run_mac.f -access +rwc
 ```
 
 Expected: `509 checks, 0 failures  *** MAC TESTS PASSED ***`
@@ -44,8 +74,7 @@ Expected: `509 checks, 0 failures  *** MAC TESTS PASSED ***`
 ## 3. Prove the testbench has teeth (bug injection)
 
 ```sh
-xrun -access +rwc -timescale 1ns/1ps -define INJECT_BUG \
-     rtl/mac.v rtl/linear_layer.v tb/tb_linear_layer.v
+xrun -f run.f -access +rwc -define INJECT_BUG
 ```
 
 Expected: `RESULT: 1704 checks, N failures` with **N > 0** — the checker catches
@@ -80,8 +109,7 @@ simvision sim/linear_layer.vcd &
 **B. Native Xcelium waves (SHM database), full-visibility live debug**
 
 ```sh
-xrun -gui -access +rwc -timescale 1ns/1ps -define QUICK \
-     rtl/mac.v rtl/linear_layer.v tb/tb_linear_layer.v
+xrun -f run.f -access +rwc -define QUICK -gui
 ```
 
 > **Use `-define QUICK` for waveform capture.** Without it the 200-vector random

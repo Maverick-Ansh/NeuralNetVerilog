@@ -10,36 +10,40 @@
 #   ./run_xrun.sh gui          # QUICK run + open SimVision live (lab record)
 #   ./run_xrun.sh gui-full     # full run + open SimVision live
 #============================================================================
+#
+# This is a thin wrapper around the filelists run.f / run_mac.f. Every target
+# below is a single xrun command you can also type by hand -- the equivalent is
+# printed in docs/xcelium_simvision.md.
+#============================================================================
 set -e
-mkdir -p sim
+mkdir -p sim          # $dumpfile writes into sim/, so it must exist
 
-RTL="rtl/mac.v rtl/linear_layer.v"
-LAYER_TB="tb/tb_linear_layer.v"
-MAC_TB="tb/tb_mac.v"
-
+# -f            : read the source list from a filelist
 # -access +rwc  : full signal visibility for SimVision waveform debug
-# -timescale    : match the `timescale in the sources
-COMMON="-access +rwc -timescale 1ns/1ps"
+# (-timescale lives inside the filelists)
+LAYER="-f run.f"
+MAC="-f run_mac.f"
+COMMON="-access +rwc"
 
 case "$1" in
   mac)
-    xrun $COMMON $RTL $MAC_TB
+    xrun $MAC $COMMON
     ;;
   quick)
-    xrun $COMMON -define QUICK $RTL $LAYER_TB
+    xrun $LAYER $COMMON -define QUICK
     ;;
   bug)
-    xrun $COMMON -define INJECT_BUG $RTL $LAYER_TB
+    xrun $LAYER $COMMON -define INJECT_BUG
     ;;
   gui)
     # QUICK: only the directed cases in the functional table, so the whole
     # simulation is ~9.7 us and fits on one readable SimVision screen.
-    xrun -gui $COMMON -define QUICK $RTL $LAYER_TB
+    xrun $LAYER $COMMON -define QUICK -gui
     ;;
   gui-full)
-    xrun -gui $COMMON $RTL $LAYER_TB
+    xrun $LAYER $COMMON -gui
     ;;
   *)
-    xrun $COMMON $RTL $LAYER_TB
+    xrun $LAYER $COMMON
     ;;
 esac

@@ -92,8 +92,11 @@ rtl/mac.v                 signed MAC primitive (the reused compute unit)
 rtl/linear_layer.v        layer core: storage + FSM + requantize + ReLU
 tb/tb_linear_layer.v      self-checking TB: golden model + all failure cases
 tb/tb_mac.v               MAC unit testbench (primitive tested in isolation)
-run_xrun.sh               Xcelium compile/run wrapper
+run.f                     Xcelium filelist: RTL + layer testbench
+run_mac.f                 Xcelium filelist: RTL + MAC testbench
+run_xrun.sh               Xcelium compile/run wrapper (wraps the filelists)
 Makefile                  Icarus Verilog convenience targets (used for CI here)
+docs/functional_table.md  hand-derived expected outputs (verification reference)
 docs/failure_cases.md     failure-case table (test → what it proves)
 docs/xcelium_simvision.md xrun commands + SimVision steps, top to bottom
 ```
@@ -103,6 +106,21 @@ docs/xcelium_simvision.md xrun commands + SimVision steps, top to bottom
 ## 5. How to run
 
 ### Cadence Xcelium (the deliverable simulator)
+
+Sources are collected in the filelists `run.f` (layer) and `run_mac.f` (MAC),
+read via `xrun -f`. Run from the repo root, and create `sim/` first — the
+testbench's `$dumpfile` writes there:
+
+```sh
+mkdir -p sim
+
+xrun -f run.f     -access +rwc                     # 1704 checks, 0 failures
+xrun -f run.f     -access +rwc -define QUICK -gui  #  104 checks + SimVision
+xrun -f run_mac.f -access +rwc                     #  509 checks, 0 failures
+xrun -f run.f     -access +rwc -define INJECT_BUG  #  non-zero failures
+```
+
+Or via the wrapper, which does the `mkdir` for you:
 
 ```sh
 ./run_xrun.sh          # layer testbench — expect: 1704 checks, 0 failures
